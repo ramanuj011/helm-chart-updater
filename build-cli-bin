@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+
+# Set the version number for the build
+version="1.2.2"
+
+if [ -z "$1" ]; then
+   echo "Setting datevar"
+   datevar=$(date +"%Y-%m-%d~%T")
+   echo "datevar is set to [$datevar]"
+else
+   datevar=$1
+   echo "Using datevar : $datevar"
+fi
+
+set -eu
+
+bindir=$( cd "${0%/*}" && pwd )
+echo $bindir
+rootdir=$( cd "$bindir"/.. && pwd )
+echo $rootdir
+# shellcheck source=_tag.sh
+# . "$bindir"/_tag.sh
+# shellcheck source=_os.sh
+source $bindir/_os.sh
+
+(
+    cd "$rootdir"
+    cd "$(pwd -P)"
+    target=target/helm-chart-updater-$(os)-$(arch)
+
+    # root_tag=$("$bindir"/root-tag)
+    GO111MODULE=on CGO_ENABLED=0 go build -o "$target" -ldflags "-s -w -X 'webfocus.tibco.com/ws/cmd.version=$version' -X 'webfocus.tibco.com/ws/cmd.build=$datevar' -X webfocus.tibco.com/ws/cmd.githash=`git rev-parse HEAD`"  -tags prod -mod=readonly .
+    echo "$target"
+)
